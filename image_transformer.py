@@ -1,5 +1,5 @@
 from PIL import Image
-import numpy as mp
+import numpy as np 
 import pandas as pd
 
 class ImageTransformer: 
@@ -87,7 +87,7 @@ def main():
         num_samples = 3
         
         try:
-            samples = transformer.get_randomised_sample(sample_size, num_samples)
+            samples = transformer.get_randomised_sample(sample_size, num_samples) 
             for i, sample in enumerate(samples):
                 sample.show() # or save file using sample.save(f"sample_{i}.jpg")
         except ValueError as e:
