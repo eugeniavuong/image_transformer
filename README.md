@@ -24,7 +24,7 @@ The Image Transformer is a Python script that performs random image sampling usi
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/image-transformer.git
+    git clone https://github.com/eugeniavuong/image-transformer.git
     cd image-transformer
     ```
 
