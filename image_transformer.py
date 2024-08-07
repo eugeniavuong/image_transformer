@@ -48,6 +48,13 @@ class ImageTransformer:
         if num_samples <= 0: 
             raise ValueError("Number of samples must be a positive integer.")
    
+    '''
+    function to check for non-overlapping samples
+    '''
+    def boxed_overlap(self, box1: tuple[int, int, int, int], box2: tuple[int, int, int, int]) -> bool:
+        x1, y1, x2, y2 = box1  # top left and bottom right coords 
+        x3, y3, x4, y4 = box2  # top left and bottom right coords
+        return not (x2 <= x3 or x4 <= x1 or y2 <= y3 or y4 <= y1)
 
     '''
     Get random sample
@@ -64,24 +71,18 @@ class ImageTransformer:
         # Shuffle df of all possible positions 
         possible_positions = possible_positions.sample(frac=1).reset_index(drop=True)
 
-        samples = set()
+        samples = []
         used_positions = set()
-
-        # Encapsulation function to check for non-overlapping samples
-        def boxed_overlap(box1: tuple[int, int, int, int], box2: tuple[int, int, int, int]) -> bool:
-            x1, y1, x2, y2 = box1  # top left and bottom right coords 
-            x3, y3, x4, y4 = box2  # top left and bottom right coords
-            return not (x2 <= x3 or x4 <= x1 or y2 <= y3 or y4 <= y1)
         
         # Select for non-overlapping samples 
         for row in possible_positions.itertuples(index=False): # Iterate over the possible positions 
-            if len(samples) >= num_samples:
-                break #stop iterating if the number of samples is >= num_samples
+            if len(samples) == num_samples:
+                break #stop iterating if the number of samples is == num_samples
             x, y = row.x, row.y
             sample_box = (x, y, x + sample_size[0], y + sample_size[1]) # creates a tuple representing top left corner and bottom right corner
 
-            if not any(boxed_overlap(sample_box, s) for s in used_positions):
-                samples.add(sample_box)
+            if not any(self.boxed_overlap(sample_box, s) for s in used_positions):
+                samples.append(sample_box)
                 used_positions.add(sample_box) # make sure we don't have the same sample in samples set 
         if len(samples) < num_samples:
             raise RuntimeError("Unable to find enough non-overlapping samples.")

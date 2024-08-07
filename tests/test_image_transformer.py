@@ -36,3 +36,16 @@ class TestImageTransformer(unittest.TestCase):
         # Test getting more samples than possible 
         with self.assertRaises(RuntimeError):
             self.transformer.get_randomised_sample((100,100), 30)
+
+    def test_boxed_overlap(self):
+        cases = [
+            ((0, 0, 50, 50), (60, 60, 110, 110), False), # no overlap
+            ((0, 0, 50, 50), (40, 40, 90, 90), True), # overlap
+            ((0, 0, 50, 50), (50, 50, 100, 100), False),
+            ((0, 0, 100, 100), (90, 90, 150, 150), True),
+            ((0, 0, 100, 100), (100, 100, 200, 200), False)
+        ]
+        for box1, box2, expected in cases:
+            with self.subTest(box1=box1, box2=box2, expected=expected):
+                result = self.transformer.boxed_overlap(box1, box2)
+                self.assertEqual(result, expected)
