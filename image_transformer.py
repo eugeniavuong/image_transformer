@@ -13,9 +13,18 @@ class ImageTransformer:
     image_path (str): The path to the image file to be loaded.
     '''
     def __init__(self, image_path: str):
-        # Open the image using PIL and store its dimentions 
+        self.image_path = image_path
+        self.image = None
+        self.width = None
+        self.height = None
+        self.load_image()
+
+    '''
+    Load the image and store its dimensions
+    '''
+    def load_image(self):
         try:
-            self.image = Image.open(image_path)
+            self.image = Image.open(self.image_path)
             self.width, self.height = self.image.size
         except Exception as e:
             raise ValueError(f"Invalid image path: {e}")
@@ -24,7 +33,7 @@ class ImageTransformer:
     '''
     Param checker and error handling
     ''' 
-    def param_check(self, sample_size: tuple, num_samples:int):
+    def param_check(self, sample_size: tuple[int,int], num_samples:int):
         # Check whether width and height of sample is correctly defined
         if not(isinstance(sample_size, tuple) and len(sample_size)==2): 
             raise ValueError("Sample size must be of width and height.")
@@ -44,40 +53,41 @@ class ImageTransformer:
     Get random sample
     '''
     # randomised points for sampling 
-    def get_randomised_sample(self, sample_size:int, num_samples:int) -> list:
+    def get_randomised_sample(self, sample_size: tuple[int, int], num_samples:int) -> list:
         self.param_check(sample_size, num_samples)
 
         # Generate a list of all possible top left corners positions (x,y) where the sample can fit within the image dimensions. 
         # Using a pandas df to store these positions for efficient manipulation 
-        x_coords = range(0,self.width - sample_size[0] + 1)
+        x_coords = range(0, self.width - sample_size[0] + 1)
         y_coords = range(0, self.height - sample_size[1] + 1)
-        possible_positions = pd.DataFrame(data=[(x,y) for x in x_coords for y in y_coords], columns= ['x', 'y'])
+        possible_positions = pd.DataFrame(data=[(x, y) for x in x_coords for y in y_coords], columns=['x', 'y'])
         # Shuffle df of all possible positions 
         possible_positions = possible_positions.sample(frac=1).reset_index(drop=True)
 
-        samples = []
-        used_positions = []
+        samples = set()
+        used_positions = set()
 
-        # Encapsultation function to check for non-overlapping samples
-        def boxed_overlap(box1:tuple, box2:tuple) -> bool:
-            x1, y1, x2, y2 = box1 #top left and bottom right coords 
-            x3, y3, x4, y4 = box2 # top left and bottom right coords
+        # Encapsulation function to check for non-overlapping samples
+        def boxed_overlap(box1: tuple[int, int, int, int], box2: tuple[int, int, int, int]) -> bool:
+            x1, y1, x2, y2 = box1  # top left and bottom right coords 
+            x3, y3, x4, y4 = box2  # top left and bottom right coords
             return not (x2 <= x3 or x4 <= x1 or y2 <= y3 or y4 <= y1)
         
         # Select for non-overlapping samples 
-        for index, row in possible_positions.iterrows(): # Iterate over the possible positions 
+        for row in possible_positions.itertuples(index=False): # Iterate over the possible positions 
             if len(samples) >= num_samples:
-                break #stop iterating if the number of samples is >= 3
-            x,y = row['x'], row['y']
-            sample_box = (x, y, x + sample_size[0], y + sample_size[1]) # creates a tuple representing top left corner and bottom rifght corner
+                break #stop iterating if the number of samples is >= num_samples
+            x, y = row.x, row.y
+            sample_box = (x, y, x + sample_size[0], y + sample_size[1]) # creates a tuple representing top left corner and bottom right corner
 
             if not any(boxed_overlap(sample_box, s) for s in used_positions):
-                sample = self.image.crop(sample_box)
-                samples.append(sample)
-                used_positions.append(sample_box) # make sure we don't have the same sample in samples list 
+                samples.add(sample_box)
+                used_positions.add(sample_box) # make sure we don't have the same sample in samples set 
         if len(samples) < num_samples:
             raise RuntimeError("Unable to find enough non-overlapping samples.")
-        return samples
+        
+        cropped_samples = [self.image.crop(sample_box) for sample_box in samples]
+        return cropped_samples
 
         
 def main():
